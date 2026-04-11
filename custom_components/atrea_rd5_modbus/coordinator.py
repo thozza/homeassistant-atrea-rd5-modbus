@@ -23,6 +23,7 @@ from .const import (
 
 if TYPE_CHECKING:
     from pymodbus.client import AsyncModbusTcpClient
+
 _LOGGER = logging.getLogger(__name__)
 
 

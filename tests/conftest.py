@@ -1,11 +1,21 @@
 """Shared fixtures for Atrea RD5 Modbus integration tests."""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 pytest_plugins = "pytest_homeassistant_custom_component"
+
+
+@pytest.fixture(autouse=True)
+def mock_setup_entry():
+    """Prevent async_setup_entry from making real network calls during tests."""
+    with patch(
+        "custom_components.atrea_rd5_modbus.async_setup_entry",
+        return_value=True,
+    ):
+        yield
 
 
 @pytest.fixture(autouse=True)
