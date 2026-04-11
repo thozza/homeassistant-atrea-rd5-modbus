@@ -1,0 +1,13 @@
+{
+  "domain": "atrea_rd5_modbus",
+  "name": "Atrea RD5 Modbus",
+  "codeowners": ["@thozza"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/thozza/homeassistant-atrea-rd5-modbus",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/thozza/homeassistant-atrea-rd5-modbus/issues",
+  "requirements": ["pymodbus>=3.6.0"],
+  "version": "1.0.0"
+}
