@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install \
+            "pymodbus>=3.6.0" \
+            pytest \
+            pytest-asyncio \
+            pytest-homeassistant-custom-component \
+            ruff
+
+      - name: Lint with ruff
+        continue-on-error: true
+        run: ruff check custom_components/
+
+      - name: Check formatting with ruff
+        continue-on-error: true
+        run: ruff format --check custom_components/
+
+      - name: Run tests
+        run: pytest tests/ -v
+
+  hacs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate with HACS
+        uses: hacs/action@main
+        with:
+          category: integration
+
+  hassfest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate with Hassfest
+        uses: home-assistant/actions/hassfest@master
