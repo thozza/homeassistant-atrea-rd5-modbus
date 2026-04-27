@@ -35,17 +35,30 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 
 async def validate_connection(host: str, port: int, slave_id: int) -> None:
     """Attempt a Modbus TCP connection and read one register to validate the device."""
+    _LOGGER.debug("Validating connection to %s:%d (slave_id=%d)", host, port, slave_id)
     client = AsyncModbusTcpClient(host=host, port=port)
     try:
         await client.connect()
         if not client.connected:
+            _LOGGER.debug("TCP connection to %s:%d failed — client not connected after connect()", host, port)
             raise CannotConnect("Could not establish TCP connection to device")
+        _LOGGER.debug("TCP connection established; reading holding register %d", REGISTER_MAP["mode"].address)
         result = await client.read_holding_registers(address=REGISTER_MAP["mode"].address, count=1, slave=slave_id)
         if result.isError():
+            _LOGGER.debug(
+                "Modbus error response from %s:%d (slave_id=%d) at address %d: %s",
+                host,
+                port,
+                slave_id,
+                REGISTER_MAP["mode"].address,
+                result,
+            )
             raise CannotConnect("Device connected but returned a Modbus error")
+        _LOGGER.debug("Validation successful — device responded with register value %s", result.registers)
     except CannotConnect:
         raise
     except Exception as err:
+        _LOGGER.debug("Unexpected exception during validation of %s:%d: %s", host, port, err, exc_info=True)
         raise CannotConnect(f"Unexpected error: {err}") from err
     finally:
         client.close()
@@ -69,7 +82,8 @@ class AtreaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     user_input[CONF_PORT],
                     user_input[CONF_SLAVE_ID],
                 )
-            except CannotConnect:
+            except CannotConnect as err:
+                _LOGGER.warning("Connection validation failed for %s: %s", user_input[CONF_HOST], err)
                 errors["base"] = "cannot_connect"
             except Exception:
                 _LOGGER.exception("Unexpected error during config flow validation")
