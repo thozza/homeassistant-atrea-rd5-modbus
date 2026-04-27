@@ -21,7 +21,7 @@ Monitor your **Atrea RD5 ventilation unit** from Home Assistant using Modbus TCP
 
 - Home Assistant 2024.1.0 or newer
 - Atrea RD5 unit with Modbus TCP enabled and accessible on the network (default port: 502)
-- Python package `pymodbus >= 3.6.0` (installed automatically by HA)
+- Python package `pymodbus >= 3.10.0` (installed automatically by HA)
 
 ## Installation
 

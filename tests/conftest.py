@@ -4,6 +4,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pymodbus.client import AsyncModbusTcpClient
 
 pytest_plugins = "pytest_homeassistant_custom_component"
 
@@ -42,8 +43,15 @@ def mock_modbus_client():
     # power=75, mode=1 (Automatic)
     holding_response.registers = [75, 1]
 
-    client.read_input_registers = AsyncMock(return_value=input_response)
-    client.read_holding_registers = AsyncMock(return_value=holding_response)
+    # spec= enforces the real pymodbus signature so wrong kwargs raise TypeError in tests just as in production.
+    client.read_input_registers = AsyncMock(
+        spec=AsyncModbusTcpClient.read_input_registers,
+        return_value=input_response,
+    )
+    client.read_holding_registers = AsyncMock(
+        spec=AsyncModbusTcpClient.read_holding_registers,
+        return_value=holding_response,
+    )
 
     return client
 
