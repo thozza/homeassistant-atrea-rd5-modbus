@@ -59,13 +59,13 @@ class AtreaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     result = await self.client.read_input_registers(
                         address=group.start_address,
                         count=group.count,
-                        slave=self._slave_id,
+                        device_id=self._slave_id,
                     )
                 else:
                     result = await self.client.read_holding_registers(
                         address=group.start_address,
                         count=group.count,
-                        slave=self._slave_id,
+                        device_id=self._slave_id,
                     )
 
                 if result.isError():

@@ -43,7 +43,7 @@ async def validate_connection(host: str, port: int, slave_id: int) -> None:
             _LOGGER.debug("TCP connection to %s:%d failed — client not connected after connect()", host, port)
             raise CannotConnect("Could not establish TCP connection to device")
         _LOGGER.debug("TCP connection established; reading holding register %d", REGISTER_MAP["mode"].address)
-        result = await client.read_holding_registers(address=REGISTER_MAP["mode"].address, count=1, slave=slave_id)
+        result = await client.read_holding_registers(address=REGISTER_MAP["mode"].address, count=1, device_id=slave_id)
         if result.isError():
             _LOGGER.debug(
                 "Modbus error response from %s:%d (slave_id=%d) at address %d: %s",
