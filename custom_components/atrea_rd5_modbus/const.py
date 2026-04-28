@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 DOMAIN = "atrea_rd5_modbus"
 
@@ -113,6 +114,21 @@ REGISTER_MAP: dict[str, RegisterEntry] = {
     "power": RegisterEntry(address=10704, register_type=RegisterType.HOLDING, convert=float),
     "mode": RegisterEntry(address=10705, register_type=RegisterType.HOLDING, convert=_convert_mode),
     "toda_source": RegisterEntry(address=10510, register_type=RegisterType.COIL, convert=_convert_toda_source),
+}
+
+
+@dataclass(frozen=True)
+class WriteRegisterEntry:
+    address: int
+    register_type: RegisterType  # HOLDING or COIL
+    encode: Callable[[Any], int]
+
+
+WRITE_REGISTER_MAP: dict[str, WriteRegisterEntry] = {
+    "bms_toda": WriteRegisterEntry(10213, RegisterType.HOLDING, encode_signed10),
+    "bms_tida": WriteRegisterEntry(10214, RegisterType.HOLDING, encode_signed10),
+    "toda_source": WriteRegisterEntry(10510, RegisterType.COIL, lambda v: TODA_SOURCES_INV[v]),
+    "tida_source": WriteRegisterEntry(10514, RegisterType.HOLDING, lambda v: TIDA_SOURCES_INV[v]),
 }
 
 
