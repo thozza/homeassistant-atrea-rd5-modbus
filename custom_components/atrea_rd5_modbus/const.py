@@ -85,6 +85,10 @@ TODA_SOURCE_OPTIONS: list[str] = list(TODA_SOURCES.values())
 TODA_SOURCES_INV: dict[str, int] = {v: k for k, v in TODA_SOURCES.items()}
 
 
+def _convert_toda_source(val: int) -> str | None:
+    return TODA_SOURCES.get(val)
+
+
 TIDA_SOURCES: dict[int, str] = {
     0: "CP",
     1: "T-ETA",
@@ -95,14 +99,20 @@ TIDA_SOURCE_OPTIONS: list[str] = list(TIDA_SOURCES.values())
 TIDA_SOURCES_INV: dict[str, int] = {v: k for k, v in TIDA_SOURCES.items()}
 
 
+def _convert_tida_source(val: int) -> str | None:
+    return TIDA_SOURCES.get(val)
+
+
 REGISTER_MAP: dict[str, RegisterEntry] = {
     "temp_oda": RegisterEntry(address=10211, register_type=RegisterType.INPUT, convert=signed10),
     "temp_sup": RegisterEntry(address=10212, register_type=RegisterType.INPUT, convert=signed10),
     "temp_eta": RegisterEntry(address=10213, register_type=RegisterType.INPUT, convert=signed10),
     "temp_eha": RegisterEntry(address=10214, register_type=RegisterType.INPUT, convert=signed10),
     "temp_ida": RegisterEntry(address=10215, register_type=RegisterType.INPUT, convert=signed10),
+    "tida_source": RegisterEntry(address=10514, register_type=RegisterType.HOLDING, convert=_convert_tida_source),
     "power": RegisterEntry(address=10704, register_type=RegisterType.HOLDING, convert=float),
     "mode": RegisterEntry(address=10705, register_type=RegisterType.HOLDING, convert=_convert_mode),
+    "toda_source": RegisterEntry(address=10510, register_type=RegisterType.COIL, convert=_convert_toda_source),
 }
 
 

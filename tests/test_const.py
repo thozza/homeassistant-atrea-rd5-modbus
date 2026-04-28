@@ -5,9 +5,14 @@ import pytest
 
 from custom_components.atrea_rd5_modbus.const import (
     REGISTER_MAP,
+    TIDA_SOURCES,
+    TIDA_SOURCES_INV,
+    TODA_SOURCES,
+    TODA_SOURCES_INV,
     RegisterEntry,
     RegisterType,
     build_batch_groups,
+    encode_signed10,
     signed10,
     TIDA_SOURCES,
     TIDA_SOURCES_INV,
@@ -32,44 +37,49 @@ def test_signed10(raw: int, expected: float) -> None:
     assert signed10(raw) == expected
 
 
-# --- build_batch_groups: REGISTER_MAP produces exactly 2 groups ---
-
-def test_build_batch_groups_returns_two_groups():
+def test_build_batch_groups_returns_four_groups():
+    """Five inputs (10211–10215), two adjacent holdings (10704–10705),
+    one isolated holding (10514), and one coil (10510)."""
     groups = build_batch_groups(REGISTER_MAP)
-    assert len(groups) == 2
+    assert len(groups) == 4
 
 
-def test_build_batch_groups_has_input_and_holding():
+def test_build_batch_groups_covers_all_register_types():
     groups = build_batch_groups(REGISTER_MAP)
     types = {g.register_type for g in groups}
-    assert types == {RegisterType.INPUT, RegisterType.HOLDING}
+    assert types == {RegisterType.INPUT, RegisterType.HOLDING, RegisterType.COIL}
 
 
-@pytest.mark.parametrize("register_type, expected_start, expected_count, expected_keys", [
+@pytest.mark.parametrize("register_type, start, count, keys", [
     (
         RegisterType.INPUT,
-        10211,
-        5,
+        10211, 5,
         ["temp_oda", "temp_sup", "temp_eta", "temp_eha", "temp_ida"],
     ),
     (
         RegisterType.HOLDING,
-        10704,
-        2,
+        10514, 1,
+        ["tida_source"],
+    ),
+    (
+        RegisterType.HOLDING,
+        10704, 2,
         ["power", "mode"],
     ),
+    (
+        RegisterType.COIL,
+        10510, 1,
+        ["toda_source"],
+    ),
 ])
-def test_build_batch_groups_properties(
-    register_type: RegisterType,
-    expected_start: int,
-    expected_count: int,
-    expected_keys: list[str],
-) -> None:
+def test_build_batch_groups_properties(register_type: RegisterType, start: int, count: int, keys: list[str]) -> None:
     groups = build_batch_groups(REGISTER_MAP)
-    group = next(g for g in groups if g.register_type == register_type)
-    assert group.start_address == expected_start
-    assert group.count == expected_count
-    assert group.keys == expected_keys
+    group = next(
+        g for g in groups
+        if g.register_type == register_type and g.start_address == start
+    )
+    assert group.count == count
+    assert group.keys == keys
 
 
 def test_build_batch_groups_non_consecutive_splits():
