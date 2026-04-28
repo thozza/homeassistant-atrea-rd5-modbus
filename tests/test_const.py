@@ -9,8 +9,10 @@ from custom_components.atrea_rd5_modbus.const import (
     TIDA_SOURCES_INV,
     TODA_SOURCES,
     TODA_SOURCES_INV,
+    WRITE_REGISTER_MAP,
     RegisterEntry,
     RegisterType,
+    WriteRegisterEntry,
     build_batch_groups,
     encode_signed10,
     signed10,
@@ -118,3 +120,37 @@ def test_toda_sources_inv_round_trip() -> None:
 def test_tida_sources_inv_round_trip() -> None:
     for code, name in TIDA_SOURCES.items():
         assert TIDA_SOURCES_INV[name] == code
+
+
+def test_write_register_map_keys():
+    assert set(WRITE_REGISTER_MAP) == {
+        "bms_toda", "bms_tida", "toda_source", "tida_source",
+    }
+
+
+@pytest.mark.parametrize("key, address, register_type", [
+    ("bms_toda",    10213, RegisterType.HOLDING),
+    ("bms_tida",    10214, RegisterType.HOLDING),
+    ("toda_source", 10510, RegisterType.COIL),
+    ("tida_source", 10514, RegisterType.HOLDING),
+])
+def test_write_register_map_addresses(key: str, address: int, register_type: RegisterType) -> None:
+    entry = WRITE_REGISTER_MAP[key]
+    assert isinstance(entry, WriteRegisterEntry)
+    assert entry.address == address
+    assert entry.register_type == register_type
+
+
+@pytest.mark.parametrize("key, value, expected_raw", [
+    ("bms_toda", 20.0, 200),
+    ("bms_toda", -10.0, 65436),
+    ("bms_tida", 21.5, 215),
+    ("toda_source", "Internal", 0),
+    ("toda_source", "BMS", 1),
+    ("tida_source", "CP", 0),
+    ("tida_source", "T-ETA", 1),
+    ("tida_source", "TRKn", 2),
+    ("tida_source", "BMS", 3),
+])
+def test_write_register_map_encode(key: str, value, expected_raw: int) -> None:
+    assert WRITE_REGISTER_MAP[key].encode(value) == expected_raw
