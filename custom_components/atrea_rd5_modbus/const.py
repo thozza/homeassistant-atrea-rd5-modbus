@@ -19,6 +19,7 @@ DEFAULT_SCAN_INTERVAL = 30
 class RegisterType(Enum):
     INPUT = "input"
     HOLDING = "holding"
+    COIL = "coil"
 
 
 @dataclass(frozen=True)
@@ -50,6 +51,14 @@ def signed10(val: int) -> float:
     return val / 10.0
 
 
+def encode_signed10(temp_c: float) -> int:
+    """Encode -50.0..130.0 °C as a 16-bit register value (×10, two's complement)."""
+    val = round(temp_c * 10)
+    if val < 0:
+        val += 65536
+    return val
+
+
 OPERATION_MODES: dict[int, str] = {
     0: "Off",
     1: "Automatic",
@@ -66,6 +75,24 @@ OPERATION_MODE_OPTIONS: list[str] = list(OPERATION_MODES.values())
 
 def _convert_mode(val: int) -> str | None:
     return OPERATION_MODES.get(val)
+
+
+TODA_SOURCES: dict[int, str] = {
+    0: "Internal",
+    1: "BMS",
+}
+TODA_SOURCE_OPTIONS: list[str] = list(TODA_SOURCES.values())
+TODA_SOURCES_INV: dict[str, int] = {v: k for k, v in TODA_SOURCES.items()}
+
+
+TIDA_SOURCES: dict[int, str] = {
+    0: "CP",
+    1: "T-ETA",
+    2: "TRKn",
+    3: "BMS",
+}
+TIDA_SOURCE_OPTIONS: list[str] = list(TIDA_SOURCES.values())
+TIDA_SOURCES_INV: dict[str, int] = {v: k for k, v in TIDA_SOURCES.items()}
 
 
 REGISTER_MAP: dict[str, RegisterEntry] = {

@@ -9,6 +9,11 @@ from custom_components.atrea_rd5_modbus.const import (
     RegisterType,
     build_batch_groups,
     signed10,
+    TIDA_SOURCES,
+    TIDA_SOURCES_INV,
+    TODA_SOURCES,
+    TODA_SOURCES_INV,
+    encode_signed10,
 )
 
 # --- signed10 ---
@@ -75,3 +80,31 @@ def test_build_batch_groups_non_consecutive_splits():
     }
     groups = build_batch_groups(sparse_map)
     assert len(groups) == 2
+
+
+@pytest.mark.parametrize("temp_c, expected", [
+    (20.0,    200),
+    (0.0,     0),
+    (0.1,     1),
+    (130.0,   1300),
+    (-0.1,    65535),
+    (-10.0,   65436),
+    (-50.0,   65036),
+])
+def test_encode_signed10(temp_c: float, expected: int) -> None:
+    assert encode_signed10(temp_c) == expected
+
+
+@pytest.mark.parametrize("temp_c", [-50.0, -10.0, -0.1, 0.0, 0.1, 20.5, 130.0])
+def test_encode_signed10_round_trip(temp_c: float) -> None:
+    assert signed10(encode_signed10(temp_c)) == pytest.approx(temp_c)
+
+
+def test_toda_sources_inv_round_trip() -> None:
+    for code, name in TODA_SOURCES.items():
+        assert TODA_SOURCES_INV[name] == code
+
+
+def test_tida_sources_inv_round_trip() -> None:
+    for code, name in TIDA_SOURCES.items():
+        assert TIDA_SOURCES_INV[name] == code
