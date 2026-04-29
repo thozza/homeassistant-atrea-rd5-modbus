@@ -193,3 +193,14 @@ async def test_async_write_unknown_key_raises_keyerror(hass, mock_modbus_client)
 
     with pytest.raises(KeyError):
         await coordinator.async_write("does_not_exist", 1)
+
+
+def test_coordinator_device_info(mock_modbus_client):
+    hass = MagicMock()
+    coordinator = AtreaCoordinator(hass, make_mock_entry(), mock_modbus_client)
+
+    info = coordinator.device_info
+    assert info["manufacturer"] == "Atrea"
+    assert info["model"] == "RD5"
+    assert info["name"] == "Atrea RD5 @ 192.168.1.100"
+    assert info["identifiers"] == {("atrea_rd5_modbus", coordinator.config_entry.entry_id)}

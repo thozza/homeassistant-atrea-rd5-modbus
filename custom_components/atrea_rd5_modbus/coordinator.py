@@ -7,7 +7,9 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from pymodbus.exceptions import ModbusException
 
@@ -125,3 +127,12 @@ class AtreaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise ModbusException(f"Modbus write to {key} (addr {entry.address}) returned an error response")
 
         await self.async_request_refresh()
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.config_entry.entry_id)},
+            name=f"Atrea RD5 @ {self.config_entry.data[CONF_HOST]}",
+            manufacturer="Atrea",
+            model="RD5",
+        )
