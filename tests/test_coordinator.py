@@ -59,7 +59,7 @@ async def test_update_data_negative_temperature(mock_modbus_client):
     ),
     (
         "read_holding_registers",
-        ["power", "mode"],
+        ["power", "mode", "tida_source"],
         "temp_oda",
     ),
 ])
