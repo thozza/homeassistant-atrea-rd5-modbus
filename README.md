@@ -7,15 +7,18 @@
 [![CI](https://github.com/thozza/homeassistant-atrea-rd5-modbus/actions/workflows/ci.yml/badge.svg)](https://github.com/thozza/homeassistant-atrea-rd5-modbus/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-Monitor your **Atrea RD5 ventilation unit** from Home Assistant using Modbus TCP.
+Monitor and control your **Atrea RD5 ventilation unit** from Home Assistant using Modbus TCP.
 
 ## Features
 
 - 🌡️ **5 temperature sensors**: outdoor air (T-ODA), supply air (T-SUP), extract air (T-ETA), exhaust air (T-EHA), indoor air (T-IDA)
 - 🔄 **Ventilation mode**: tracks current mode (Off / Automatic / Ventilation / Circulation / Night cooling / ...)
 - 💨 **Ventilation power**: current requested fan power (0–100%)
+- 🌐 **BMS temperature source selects**: choose between internal sensor or BMS-supplied value for T-ODA and T-IDA
+- 📡 **BMS setpoint write**: push outdoor / indoor temperature values from HA automations to the HVAC
 - Efficient batch Modbus reads — only 2 TCP requests per poll cycle
 - Zero-YAML setup via Home Assistant UI config flow
+- Configurable poll interval (5–300 s) editable post-setup without re-adding the integration
 
 ## Requirements
 
@@ -132,7 +135,9 @@ custom_components/atrea_rd5_modbus/
 ├── __init__.py       # Integration setup, coordinator + client lifecycle
 ├── coordinator.py    # DataUpdateCoordinator, batched Modbus reads
 ├── const.py          # Register map, signed10() conversion, batch grouping
-├── sensor.py         # 7 sensor entities
+├── sensor.py         # 7 read-only sensor entities (temperatures, power, mode)
+├── select.py         # 2 select entities (T-ODA / T-IDA source)
+├── number.py         # 2 number entities (BMS T-ODA / T-IDA setpoints)
 └── config_flow.py    # UI config flow with live connection validation
 ```
 
