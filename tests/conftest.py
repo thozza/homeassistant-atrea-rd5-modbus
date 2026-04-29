@@ -76,14 +76,13 @@ def mock_modbus_client():
         spec=AsyncModbusTcpClient.read_coils,
         return_value=coil_response,
     )
-    client.write_register = AsyncMock(
-        spec=AsyncModbusTcpClient.write_register,
-        return_value=write_response,
-    )
-    client.write_coil = AsyncMock(
-        spec=AsyncModbusTcpClient.write_coil,
-        return_value=write_response,
-    )
+    # Write mocks intentionally omit spec=: on Python 3.14, unittest.mock's
+    # _call_matcher raises "missing a required argument: 'self'" against an
+    # unbound-method spec when assert_awaited_once_with checks pass-through
+    # kwargs. Read mocks above are unaffected because their tests don't use
+    # assert_awaited_once_with.
+    client.write_register = AsyncMock(return_value=write_response)
+    client.write_coil = AsyncMock(return_value=write_response)
 
     return client
 
