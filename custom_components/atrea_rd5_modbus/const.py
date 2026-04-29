@@ -9,11 +9,11 @@ from typing import Any
 
 DOMAIN = "atrea_rd5_modbus"
 
-CONF_SLAVE_ID = "slave_id"
+CONF_UNIT_ID = "unit_id"
 CONF_SCAN_INTERVAL = "scan_interval"
 
 DEFAULT_PORT = 502
-DEFAULT_SLAVE_ID = 1
+DEFAULT_UNIT_ID = 1
 DEFAULT_SCAN_INTERVAL = 30
 
 

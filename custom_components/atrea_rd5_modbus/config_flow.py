@@ -15,10 +15,10 @@ from pymodbus.client import AsyncModbusTcpClient
 
 from .const import (
     CONF_SCAN_INTERVAL,
-    CONF_SLAVE_ID,
+    CONF_UNIT_ID,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
-    DEFAULT_SLAVE_ID,
+    DEFAULT_UNIT_ID,
     DOMAIN,
     REGISTER_MAP,
 )
@@ -29,7 +29,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_HOST): str,
         vol.Optional(CONF_PORT, default=DEFAULT_PORT): vol.All(int, vol.Range(min=1, max=65535)),
-        vol.Optional(CONF_SLAVE_ID, default=DEFAULT_SLAVE_ID): NumberSelector(
+        vol.Optional(CONF_UNIT_ID, default=DEFAULT_UNIT_ID): NumberSelector(
             NumberSelectorConfig(min=1, max=247, step=1, mode=NumberSelectorMode.BOX)
         ),
         vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(int, vol.Range(min=5)),
@@ -37,9 +37,9 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 )
 
 
-async def validate_connection(host: str, port: int, slave_id: int) -> None:
+async def validate_connection(host: str, port: int, unit_id: int) -> None:
     """Attempt a Modbus TCP connection and read one register to validate the device."""
-    _LOGGER.debug("Validating connection to %s:%d (slave_id=%d)", host, port, slave_id)
+    _LOGGER.debug("Validating connection to %s:%d (unit_id=%d)", host, port, unit_id)
     client = AsyncModbusTcpClient(host=host, port=port)
     try:
         await client.connect()
@@ -47,13 +47,13 @@ async def validate_connection(host: str, port: int, slave_id: int) -> None:
             _LOGGER.debug("TCP connection to %s:%d failed — client not connected after connect()", host, port)
             raise CannotConnect("Could not establish TCP connection to device")
         _LOGGER.debug("TCP connection established; reading holding register %d", REGISTER_MAP["mode"].address)
-        result = await client.read_holding_registers(address=REGISTER_MAP["mode"].address, count=1, device_id=slave_id)
+        result = await client.read_holding_registers(address=REGISTER_MAP["mode"].address, count=1, device_id=unit_id)
         if result.isError():
             _LOGGER.debug(
-                "Modbus error response from %s:%d (slave_id=%d) at address %d: %s",
+                "Modbus error response from %s:%d (unit_id=%d) at address %d: %s",
                 host,
                 port,
-                slave_id,
+                unit_id,
                 REGISTER_MAP["mode"].address,
                 result,
             )
@@ -83,14 +83,14 @@ class AtreaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            user_input[CONF_SLAVE_ID] = int(user_input[CONF_SLAVE_ID])
+            user_input[CONF_UNIT_ID] = int(user_input[CONF_UNIT_ID])
             await self.async_set_unique_id(user_input[CONF_HOST])
             self._abort_if_unique_id_configured()
             try:
                 await validate_connection(
                     user_input[CONF_HOST],
                     user_input[CONF_PORT],
-                    user_input[CONF_SLAVE_ID],
+                    user_input[CONF_UNIT_ID],
                 )
             except CannotConnect as err:
                 _LOGGER.warning("Connection validation failed for %s: %s", user_input[CONF_HOST], err)

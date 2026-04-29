@@ -93,6 +93,6 @@ def mock_config_entry_data():
     return {
         "host": "192.168.1.100",
         "port": 502,
-        "slave_id": 1,
+        "unit_id": 1,
         "scan_interval": 30,
     }

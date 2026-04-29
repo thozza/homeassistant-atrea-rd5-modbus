@@ -16,7 +16,7 @@ def make_mock_entry(data: dict | None = None):
     entry.data = data or {
         "host": "192.168.1.100",
         "port": 502,
-        "slave_id": 1,
+        "unit_id": 1,
         "scan_interval": 30,
     }
     entry.options = {}

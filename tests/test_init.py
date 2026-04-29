@@ -17,7 +17,7 @@ def make_entry(data: dict | None = None) -> MockConfigEntry:
         data=data or {
             "host": "192.168.1.100",
             "port": 502,
-            "slave_id": 1,
+            "unit_id": 1,
             "scan_interval": 30,
         },
     )

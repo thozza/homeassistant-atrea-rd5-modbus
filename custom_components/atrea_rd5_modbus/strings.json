@@ -6,18 +6,18 @@
         "data": {
           "host": "Host",
           "port": "Port",
-          "slave_id": "Slave ID",
+          "unit_id": "Unit ID",
           "scan_interval": "Scan interval (seconds)"
         },
         "data_description": {
           "host": "IP address of the Atrea RD5 device",
-          "slave_id": "Modbus slave/unit ID (usually 1)",
+          "unit_id": "Modbus unit ID (usually 1)",
           "scan_interval": "How often to poll the device for new data"
         }
       }
     },
     "error": {
-      "cannot_connect": "Cannot connect to the device. Verify the host, port, and slave ID.",
+      "cannot_connect": "Cannot connect to the device. Verify the host, port, and unit ID.",
       "unknown": "Unexpected error. Check Home Assistant logs for details."
     },
     "abort": {

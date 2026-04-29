@@ -54,7 +54,7 @@ The integration is configured entirely through the UI. During setup you will be 
 |-------|---------|-------------|
 | Host | — | IP address of the Atrea RD5 device |
 | Port | `502` | Modbus TCP port |
-| Slave ID | `1` | Modbus slave/unit ID |
+| Unit ID | `1` | Modbus unit ID |
 | Scan interval | `30` | Poll frequency in seconds |
 
 The connection is validated before the entry is saved — if the device is unreachable an error is shown in the form.
@@ -157,7 +157,7 @@ logger:
 **Common issues:**
 
 - *Cannot connect* — verify the device IP, port (default 502), and that Modbus TCP is enabled on the unit
-- *Entities unavailable* — check HA logs for Modbus errors; ensure the slave ID is correct (usually 1)
+- *Entities unavailable* — check HA logs for Modbus errors; ensure the unit ID is correct (usually 1)
 - *Stale/missing values* — increase the scan interval if the device reports protocol errors on rapid polling
 
 ## Disclaimer

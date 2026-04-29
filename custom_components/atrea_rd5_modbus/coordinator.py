@@ -15,7 +15,7 @@ from pymodbus.exceptions import ModbusException
 
 from .const import (
     CONF_SCAN_INTERVAL,
-    CONF_SLAVE_ID,
+    CONF_UNIT_ID,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     REGISTER_MAP,
@@ -41,7 +41,7 @@ class AtreaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         client: AsyncModbusTcpClient,
     ) -> None:
         self.client = client
-        self._slave_id: int = entry.data[CONF_SLAVE_ID]
+        self._unit_id: int = entry.data[CONF_UNIT_ID]
         self._batch_groups: list[BatchGroup] = build_batch_groups(REGISTER_MAP)
 
         scan_interval: int = entry.options.get(CONF_SCAN_INTERVAL) or entry.data.get(
@@ -67,19 +67,19 @@ class AtreaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     result = await self.client.read_input_registers(
                         address=group.start_address,
                         count=group.count,
-                        device_id=self._slave_id,
+                        device_id=self._unit_id,
                     )
                 elif group.register_type == RegisterType.HOLDING:
                     result = await self.client.read_holding_registers(
                         address=group.start_address,
                         count=group.count,
-                        device_id=self._slave_id,
+                        device_id=self._unit_id,
                     )
                 else:  # COIL
                     result = await self.client.read_coils(
                         address=group.start_address,
                         count=group.count,
-                        device_id=self._slave_id,
+                        device_id=self._unit_id,
                     )
 
                 if result.isError():
@@ -119,13 +119,13 @@ class AtreaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             result = await self.client.write_coil(
                 address=entry.address,
                 value=bool(raw),
-                device_id=self._slave_id,
+                device_id=self._unit_id,
             )
         else:  # HOLDING
             result = await self.client.write_register(
                 address=entry.address,
                 value=raw,
-                device_id=self._slave_id,
+                device_id=self._unit_id,
             )
 
         if result.isError():
