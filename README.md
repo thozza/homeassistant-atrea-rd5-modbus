@@ -67,6 +67,61 @@ The connection is validated before the entry is saved — if the device is unrea
 | T-IDA Indoor Air | °C | Indoor/room air temperature (sensor T-IDA) |
 | Ventilation Power | % | Current requested ventilation fan power (0–100%) |
 | Ventilation Mode | — | Current operation mode (Off, Automatic, Ventilation, Circulation, ...) |
+| T-ODA Source | — | Select: choose outdoor temp source (Internal / BMS) |
+| T-IDA Source | — | Select: choose indoor temp source (CP / T-ETA / TRKn / BMS) |
+| BMS T-ODA Setpoint | °C | BMS-supplied outdoor temp (write-only, −50–130 °C) |
+| BMS T-IDA Setpoint | °C | BMS-supplied indoor temp (write-only, −50–130 °C) |
+
+## BMS Setpoints (T-ODA / T-IDA from external sensors)
+
+The Atrea RD5 can use temperatures supplied by Home Assistant in place
+of its own outdoor (T-ODA) or indoor (T-IDA) sensors. This integration
+exposes the relevant device registers as four entities:
+
+| Entity | Type | Purpose |
+|--------|------|---------|
+| `select.atrea_rd5_t_oda_source` | select | Choose internal sensor or BMS-supplied T-ODA |
+| `select.atrea_rd5_t_ida_source` | select | Choose CP / T-ETA / TRKn / BMS for T-IDA |
+| `number.atrea_rd5_bms_t_oda_setpoint` | number | T-ODA value pushed to the HVAC |
+| `number.atrea_rd5_bms_t_ida_setpoint` | number | T-IDA value pushed to the HVAC |
+
+### 90-second watchdog
+
+The HVAC declares a temperature-sensor fault if a BMS-sourced value is
+not refreshed within **90 seconds**. The integration writes to the
+device every time the number entity is set, but it does **not** run an
+internal periodic push — that's left to your automation. Keep your
+update cadence comfortably below 90 s (we recommend ≤60 s).
+
+After a Home Assistant restart, each BMS setpoint number entity
+restores its last known value and immediately writes it back to the
+HVAC, so the watchdog window starts fresh before your automation's
+next trigger.
+
+### Example automation
+
+```yaml
+automation:
+  - alias: "Atrea: push outdoor temperature from weather sensor"
+    trigger:
+      - platform: time_pattern
+        seconds: "/30"
+    action:
+      - service: number.set_value
+        target:
+          entity_id: number.atrea_rd5_bms_t_oda_setpoint
+        data:
+          value: "{{ states('sensor.outdoor_temperature') | float }}"
+```
+
+Pair this with `select.atrea_rd5_t_oda_source` set to `BMS` so the
+HVAC actually consumes the supplied value.
+
+### Polling interval
+
+The polling interval (default 30 s) is editable post-setup via
+**Configure** on the integration tile in **Settings → Devices &
+Services**. Allowed range: 5–300 s.
 
 ## Architecture
 
