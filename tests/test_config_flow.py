@@ -5,8 +5,11 @@ from unittest.mock import patch
 
 import pytest
 from homeassistant import config_entries
+from homeassistant.data_entry_flow import InvalidData
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.atrea_rd5_modbus.config_flow import CannotConnect
+from custom_components.atrea_rd5_modbus.const import DOMAIN
 
 
 @pytest.fixture
@@ -103,3 +106,47 @@ async def test_config_flow_aborts_on_duplicate(hass, user_input):
 
     assert result2["type"] == "abort"
     assert result2["reason"] == "already_configured"
+
+
+async def test_options_flow_shows_form_with_current_value(hass):
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={"host": "192.168.1.100", "port": 502, "slave_id": 1, "scan_interval": 30},
+        options={"scan_interval": 45},
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+    assert result["step_id"] == "init"
+
+
+async def test_options_flow_saves_new_value(hass):
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={"host": "192.168.1.100", "port": 502, "slave_id": 1, "scan_interval": 30},
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], user_input={"scan_interval": 60}
+    )
+
+    assert result["type"] == "create_entry"
+    assert entry.options == {"scan_interval": 60}
+
+
+@pytest.mark.parametrize("invalid", [4, 0, -1, 301, 1000])
+async def test_options_flow_rejects_out_of_range(hass, invalid: int):
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={"host": "192.168.1.100", "port": 502, "slave_id": 1, "scan_interval": 30},
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    with pytest.raises(InvalidData):
+        await hass.config_entries.options.async_configure(
+            result["flow_id"], user_input={"scan_interval": invalid}
+        )
