@@ -91,3 +91,19 @@ def test_platforms_includes_select_and_number():
     assert Platform.SENSOR in PLATFORMS
     assert Platform.SELECT in PLATFORMS
     assert Platform.NUMBER in PLATFORMS
+
+
+async def test_options_update_listener_reloads_entry(hass):
+    """Changing options reloads the config entry so the coordinator picks up the new interval."""
+    from custom_components.atrea_rd5_modbus import _async_options_update_listener
+
+    entry = make_entry()
+    entry.add_to_hass(hass)
+
+    with patch(
+        "homeassistant.config_entries.ConfigEntries.async_reload",
+        new=AsyncMock(return_value=True),
+    ) as mock_reload:
+        await _async_options_update_listener(hass, entry)
+
+    mock_reload.assert_awaited_once_with(entry.entry_id)
