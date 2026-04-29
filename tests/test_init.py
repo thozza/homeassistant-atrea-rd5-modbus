@@ -81,3 +81,13 @@ async def test_unload_entry_closes_client(hass, mock_modbus_client) -> None:
     assert result is True
     mock_modbus_client.close.assert_called_once()
     assert entry.entry_id not in hass.data.get(DOMAIN, {})
+
+
+def test_platforms_includes_select_and_number():
+    from homeassistant.const import Platform
+
+    from custom_components.atrea_rd5_modbus import PLATFORMS
+
+    assert Platform.SENSOR in PLATFORMS
+    assert Platform.SELECT in PLATFORMS
+    assert Platform.NUMBER in PLATFORMS
