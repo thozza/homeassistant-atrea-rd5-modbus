@@ -19,6 +19,7 @@ def make_mock_entry(data: dict | None = None):
         "slave_id": 1,
         "scan_interval": 30,
     }
+    entry.options = {}
     return entry
 
 
@@ -204,3 +205,30 @@ def test_coordinator_device_info(mock_modbus_client):
     assert info["model"] == "RD5"
     assert info["name"] == "Atrea RD5 @ 192.168.1.100"
     assert info["identifiers"] == {("atrea_rd5_modbus", coordinator.config_entry.entry_id)}
+
+
+async def test_scan_interval_uses_options_when_set(mock_modbus_client):
+    """Options take precedence over entry.data for scan_interval."""
+    hass = MagicMock()
+    entry = make_mock_entry()
+    entry.options = {"scan_interval": 15}
+    coordinator = AtreaCoordinator(hass, entry, mock_modbus_client)
+    assert coordinator.update_interval.total_seconds() == 15
+
+
+async def test_scan_interval_falls_back_to_data(mock_modbus_client):
+    """When options is empty, scan_interval comes from entry.data."""
+    hass = MagicMock()
+    entry = make_mock_entry()
+    entry.options = {}
+    coordinator = AtreaCoordinator(hass, entry, mock_modbus_client)
+    assert coordinator.update_interval.total_seconds() == 30
+
+
+async def test_scan_interval_options_none_falls_back_to_data(mock_modbus_client):
+    """A None value in options is treated as absent — falls back to entry.data."""
+    hass = MagicMock()
+    entry = make_mock_entry()
+    entry.options = {"scan_interval": None}
+    coordinator = AtreaCoordinator(hass, entry, mock_modbus_client)
+    assert coordinator.update_interval.total_seconds() == 30
