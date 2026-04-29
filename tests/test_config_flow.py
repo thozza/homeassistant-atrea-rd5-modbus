@@ -17,7 +17,7 @@ def user_input():
     return {
         "host": "192.168.1.100",
         "port": 502,
-        "slave_id": 1,
+        "unit_id": 1,
         "scan_interval": 30,
     }
 
@@ -111,7 +111,7 @@ async def test_config_flow_aborts_on_duplicate(hass, user_input):
 async def test_options_flow_shows_form_with_current_value(hass):
     entry = MockConfigEntry(
         domain=DOMAIN,
-        data={"host": "192.168.1.100", "port": 502, "slave_id": 1, "scan_interval": 30},
+        data={"host": "192.168.1.100", "port": 502, "unit_id": 1, "scan_interval": 30},
         options={"scan_interval": 45},
     )
     entry.add_to_hass(hass)
@@ -124,7 +124,7 @@ async def test_options_flow_shows_form_with_current_value(hass):
 async def test_options_flow_saves_new_value(hass):
     entry = MockConfigEntry(
         domain=DOMAIN,
-        data={"host": "192.168.1.100", "port": 502, "slave_id": 1, "scan_interval": 30},
+        data={"host": "192.168.1.100", "port": 502, "unit_id": 1, "scan_interval": 30},
     )
     entry.add_to_hass(hass)
 
@@ -141,7 +141,7 @@ async def test_options_flow_saves_new_value(hass):
 async def test_options_flow_rejects_out_of_range(hass, invalid: int):
     entry = MockConfigEntry(
         domain=DOMAIN,
-        data={"host": "192.168.1.100", "port": 502, "slave_id": 1, "scan_interval": 30},
+        data={"host": "192.168.1.100", "port": 502, "unit_id": 1, "scan_interval": 30},
     )
     entry.add_to_hass(hass)
 
