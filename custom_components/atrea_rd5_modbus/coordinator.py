@@ -16,6 +16,7 @@ from .const import (
     CONF_SLAVE_ID,
     DOMAIN,
     REGISTER_MAP,
+    WRITE_REGISTER_MAP,
     BatchGroup,
     RegisterType,
     build_batch_groups,
@@ -101,3 +102,26 @@ class AtreaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise UpdateFailed("All Modbus read batches failed — device unreachable")
 
         return data
+
+    async def async_write(self, key: str, value: Any) -> None:
+        """Encode and write a single register or coil. Used by select and number platforms."""
+        entry = WRITE_REGISTER_MAP[key]
+        raw = entry.encode(value)
+
+        if entry.register_type == RegisterType.COIL:
+            result = await self.client.write_coil(
+                address=entry.address,
+                value=bool(raw),
+                device_id=self._slave_id,
+            )
+        else:  # HOLDING
+            result = await self.client.write_register(
+                address=entry.address,
+                value=raw,
+                device_id=self._slave_id,
+            )
+
+        if result.isError():
+            raise ModbusException(f"Modbus write to {key} (addr {entry.address}) returned an error response")
+
+        await self.async_request_refresh()

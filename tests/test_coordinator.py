@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.helpers.update_coordinator import UpdateFailed
+from pymodbus.exceptions import ModbusException
 
 from custom_components.atrea_rd5_modbus.coordinator import AtreaCoordinator
 
@@ -137,3 +138,58 @@ async def test_update_data_coil_failure_isolated(mock_modbus_client):
     assert data["temp_oda"] == 20.0
     assert data["tida_source"] == "BMS"
     assert data["power"] == 75.0
+
+
+async def test_async_write_holding_register(hass, mock_modbus_client):
+    """Writing a temperature setpoint encodes via signed10 and uses write_register."""
+    coordinator = AtreaCoordinator(hass, make_mock_entry(), mock_modbus_client)
+    coordinator.async_request_refresh = AsyncMock()
+
+    await coordinator.async_write("bms_toda", 21.5)
+
+    mock_modbus_client.write_register.assert_awaited_once_with(
+        address=10213, value=215, device_id=1,
+    )
+    mock_modbus_client.write_coil.assert_not_called()
+
+
+async def test_async_write_coil(hass, mock_modbus_client):
+    """Writing the T-ODA source uses write_coil with a bool."""
+    coordinator = AtreaCoordinator(hass, make_mock_entry(), mock_modbus_client)
+    coordinator.async_request_refresh = AsyncMock()
+
+    await coordinator.async_write("toda_source", "BMS")
+
+    mock_modbus_client.write_coil.assert_awaited_once_with(
+        address=10510, value=True, device_id=1,
+    )
+    mock_modbus_client.write_register.assert_not_called()
+
+
+async def test_async_write_holding_for_tida_source(hass, mock_modbus_client):
+    """Writing T-IDA source uses write_register with the encoded int."""
+    coordinator = AtreaCoordinator(hass, make_mock_entry(), mock_modbus_client)
+    coordinator.async_request_refresh = AsyncMock()
+
+    await coordinator.async_write("tida_source", "TRKn")
+
+    mock_modbus_client.write_register.assert_awaited_once_with(
+        address=10514, value=2, device_id=1,
+    )
+
+
+async def test_async_write_raises_on_error_response(hass, mock_modbus_client):
+    error_response = MagicMock()
+    error_response.isError.return_value = True
+    mock_modbus_client.write_register = AsyncMock(return_value=error_response)
+    coordinator = AtreaCoordinator(hass, make_mock_entry(), mock_modbus_client)
+
+    with pytest.raises(ModbusException):
+        await coordinator.async_write("bms_toda", 20.0)
+
+
+async def test_async_write_unknown_key_raises_keyerror(hass, mock_modbus_client):
+    coordinator = AtreaCoordinator(hass, make_mock_entry(), mock_modbus_client)
+
+    with pytest.raises(KeyError):
+        await coordinator.async_write("does_not_exist", 1)
