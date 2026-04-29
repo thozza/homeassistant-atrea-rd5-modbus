@@ -8,6 +8,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_PORT
+from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.selector import NumberSelector, NumberSelectorConfig, NumberSelectorMode
 from pymodbus.client import AsyncModbusTcpClient
@@ -72,6 +73,11 @@ class AtreaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> AtreaOptionsFlow:
+        return AtreaOptionsFlow()
+
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> config_entries.FlowResult:
         """Handle the initial user step."""
         errors: dict[str, str] = {}
@@ -102,6 +108,27 @@ class AtreaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=STEP_USER_DATA_SCHEMA,
             errors=errors,
+        )
+
+
+class AtreaOptionsFlow(config_entries.OptionsFlow):
+    """Edit post-setup options without re-validating the connection."""
+
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> config_entries.FlowResult:
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        current = self.config_entry.options.get(
+            CONF_SCAN_INTERVAL,
+            self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+        )
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_SCAN_INTERVAL, default=current): vol.All(int, vol.Range(min=5, max=300)),
+                }
+            ),
         )
 
 
