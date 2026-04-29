@@ -16,6 +16,7 @@ from pymodbus.exceptions import ModbusException
 from .const import (
     CONF_SCAN_INTERVAL,
     CONF_SLAVE_ID,
+    DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     REGISTER_MAP,
     WRITE_REGISTER_MAP,
@@ -43,12 +44,16 @@ class AtreaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._slave_id: int = entry.data[CONF_SLAVE_ID]
         self._batch_groups: list[BatchGroup] = build_batch_groups(REGISTER_MAP)
 
+        scan_interval: int = entry.options.get(CONF_SCAN_INTERVAL) or entry.data.get(
+            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+        )
+
         super().__init__(
             hass,
             _LOGGER,
             config_entry=entry,
             name=DOMAIN,
-            update_interval=timedelta(seconds=entry.data[CONF_SCAN_INTERVAL]),
+            update_interval=timedelta(seconds=scan_interval),
         )
 
     async def _async_update_data(self) -> dict[str, Any]:
