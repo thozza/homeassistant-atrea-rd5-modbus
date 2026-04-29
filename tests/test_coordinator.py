@@ -77,6 +77,7 @@ async def test_update_data_batch_failure_isolates_affected_keys(
 async def test_update_data_all_batches_fail_raises_update_failed(mock_modbus_client):
     mock_modbus_client.read_input_registers = AsyncMock(side_effect=Exception("timeout"))
     mock_modbus_client.read_holding_registers = AsyncMock(side_effect=Exception("timeout"))
+    mock_modbus_client.read_coils = AsyncMock(side_effect=Exception("timeout"))
     hass = MagicMock()
     coordinator = AtreaCoordinator(hass, make_mock_entry(), mock_modbus_client)
 
@@ -111,3 +112,28 @@ async def test_coordinator_client_is_accessible(mock_modbus_client):
     coordinator = AtreaCoordinator(hass, make_mock_entry(), mock_modbus_client)
 
     assert coordinator.client is mock_modbus_client
+
+
+async def test_update_data_includes_coil_and_extra_holding(mock_modbus_client):
+    """COIL reads expose `result.bits`; the coordinator normalises and converts."""
+    hass = MagicMock()
+    coordinator = AtreaCoordinator(hass, make_mock_entry(), mock_modbus_client)
+
+    data = await coordinator._async_update_data()
+
+    assert data["toda_source"] == "BMS"   # bits[0] == True -> 1
+    assert data["tida_source"] == "BMS"   # holding_response_tida_source.registers == [3]
+
+
+async def test_update_data_coil_failure_isolated(mock_modbus_client):
+    """A coil-batch failure nulls only its keys, leaving other batches intact."""
+    mock_modbus_client.read_coils = AsyncMock(side_effect=Exception("timeout"))
+    hass = MagicMock()
+    coordinator = AtreaCoordinator(hass, make_mock_entry(), mock_modbus_client)
+
+    data = await coordinator._async_update_data()
+
+    assert data["toda_source"] is None
+    assert data["temp_oda"] == 20.0
+    assert data["tida_source"] == "BMS"
+    assert data["power"] == 75.0

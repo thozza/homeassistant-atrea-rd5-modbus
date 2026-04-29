@@ -61,8 +61,14 @@ class AtreaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         count=group.count,
                         device_id=self._slave_id,
                     )
-                else:
+                elif group.register_type == RegisterType.HOLDING:
                     result = await self.client.read_holding_registers(
+                        address=group.start_address,
+                        count=group.count,
+                        device_id=self._slave_id,
+                    )
+                else:  # COIL
+                    result = await self.client.read_coils(
                         address=group.start_address,
                         count=group.count,
                         device_id=self._slave_id,
@@ -71,8 +77,13 @@ class AtreaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if result.isError():
                     raise ModbusException(f"Error response for batch at address {group.start_address}")
 
+                if group.register_type == RegisterType.COIL:
+                    raw = [int(b) for b in result.bits[: group.count]]
+                else:
+                    raw = result.registers
+
                 for i, key in enumerate(group.keys):
-                    data[key] = REGISTER_MAP[key].convert(result.registers[i])
+                    data[key] = REGISTER_MAP[key].convert(raw[i])
 
             except Exception as err:
                 _LOGGER.warning(
