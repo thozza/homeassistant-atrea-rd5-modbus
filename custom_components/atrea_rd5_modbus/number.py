@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from homeassistant.components.number import (
     NumberDeviceClass,
+    NumberEntity,
     NumberEntityDescription,
     NumberMode,
     RestoreNumber,
@@ -15,6 +16,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from pymodbus.exceptions import ModbusException
 
 from .const import DOMAIN
@@ -26,6 +28,13 @@ _LOGGER = logging.getLogger(__name__)
 @dataclass(frozen=True, kw_only=True)
 class AtreaNumberEntityDescription(NumberEntityDescription):
     """Number entity description that names the WRITE_REGISTER_MAP key."""
+
+    write_key: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class AtreaCoordinatorNumberEntityDescription(NumberEntityDescription):
+    """Number entity description for coordinator-backed (readable) registers."""
 
     write_key: str
 
@@ -58,13 +67,34 @@ NUMBER_DESCRIPTIONS: tuple[AtreaNumberEntityDescription, ...] = (
 )
 
 
+COORDINATOR_NUMBER_DESCRIPTIONS: tuple[AtreaCoordinatorNumberEntityDescription, ...] = (
+    AtreaCoordinatorNumberEntityDescription(
+        key="season_temp_thr",
+        name="Season Temperature Threshold",
+        write_key="season_temp_thr",
+        device_class=NumberDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        native_min_value=0.0,
+        native_max_value=30.0,
+        native_step=0.1,
+        mode=NumberMode.BOX,
+        entity_category=EntityCategory.CONFIG,
+    ),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator: AtreaCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities(AtreaBmsNumber(coordinator, desc) for desc in NUMBER_DESCRIPTIONS)
+    async_add_entities(
+        [
+            *[AtreaBmsNumber(coordinator, desc) for desc in NUMBER_DESCRIPTIONS],
+            *[AtreaNumber(coordinator, desc) for desc in COORDINATOR_NUMBER_DESCRIPTIONS],
+        ]
+    )
 
 
 class AtreaBmsNumber(RestoreNumber):
@@ -118,4 +148,39 @@ class AtreaBmsNumber(RestoreNumber):
     async def async_set_native_value(self, value: float) -> None:
         await self._coordinator.async_write(self.entity_description.write_key, value)
         self._attr_native_value = value
+        self.async_write_ha_state()
+
+
+class AtreaNumber(CoordinatorEntity[AtreaCoordinator], NumberEntity):
+    """Number entity backed by coordinator data (readable + writable register)."""
+
+    entity_description: AtreaCoordinatorNumberEntityDescription
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: AtreaCoordinator,
+        description: AtreaCoordinatorNumberEntityDescription,
+    ) -> None:
+        super().__init__(coordinator)
+        self.entity_description = description
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_{description.key}"
+        self._attr_device_info = coordinator.device_info
+
+    @property
+    def native_value(self) -> float | None:
+        if self.coordinator.data is None:
+            return None
+        return self.coordinator.data.get(self.entity_description.key)
+
+    @property
+    def available(self) -> bool:
+        return (
+            self.coordinator.last_update_success
+            and self.coordinator.data is not None
+            and self.coordinator.data.get(self.entity_description.key) is not None
+        )
+
+    async def async_set_native_value(self, value: float) -> None:
+        await self.coordinator.async_write(self.entity_description.write_key, value)
         self.async_write_ha_state()

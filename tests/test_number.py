@@ -8,6 +8,8 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from pymodbus.exceptions import ModbusException
 
 from custom_components.atrea_rd5_modbus.number import (
+    COORDINATOR_NUMBER_DESCRIPTIONS,
+    AtreaNumber,
     NUMBER_DESCRIPTIONS,
     AtreaBmsNumber,
 )
@@ -123,3 +125,81 @@ async def test_async_set_native_value_raises_on_write_failure():
         await number.async_set_native_value(21.5)
 
     assert number.native_value is None
+
+
+def make_coordinator_with_data(data: dict | None = None, success: bool = True) -> MagicMock:
+    coordinator = MagicMock()
+    coordinator.data = data
+    coordinator.last_update_success = success
+    coordinator.config_entry.entry_id = "test_entry"
+    coordinator.config_entry.data = {"host": "192.168.1.100"}
+    coordinator.device_info = DeviceInfo(
+        identifiers={("atrea_rd5_modbus", "test_entry")},
+        name="Atrea RD5 @ 192.168.1.100",
+        manufacturer="Atrea",
+        model="RD5",
+    )
+    coordinator.async_write = AsyncMock()
+    return coordinator
+
+
+def get_coordinator_number_description(key: str):
+    return next(d for d in COORDINATOR_NUMBER_DESCRIPTIONS if d.key == key)
+
+
+def test_coordinator_number_descriptions_keys():
+    assert {d.key for d in COORDINATOR_NUMBER_DESCRIPTIONS} == {"season_temp_thr"}
+
+
+def test_coordinator_number_description_range():
+    desc = get_coordinator_number_description("season_temp_thr")
+    assert desc.native_min_value == 0.0
+    assert desc.native_max_value == 30.0
+    assert desc.native_step == 0.1
+
+
+def test_atrea_number_native_value():
+    coordinator = make_coordinator_with_data({"season_temp_thr": 15.0})
+    number = AtreaNumber(coordinator, get_coordinator_number_description("season_temp_thr"))
+    assert number.native_value == 15.0
+
+
+def test_atrea_number_native_value_none_when_data_is_none():
+    coordinator = make_coordinator_with_data({"season_temp_thr": 15.0})
+    coordinator.data = None
+    number = AtreaNumber(coordinator, get_coordinator_number_description("season_temp_thr"))
+    assert number.native_value is None
+
+
+@pytest.mark.parametrize("data, success, expected", [
+    ({"season_temp_thr": 15.0}, True,  True),
+    ({"season_temp_thr": None}, True,  False),
+    ({"season_temp_thr": 15.0}, False, False),
+])
+def test_atrea_number_available(data: dict, success: bool, expected: bool) -> None:
+    coordinator = make_coordinator_with_data(data, success)
+    number = AtreaNumber(coordinator, get_coordinator_number_description("season_temp_thr"))
+    assert number.available is expected
+
+
+def test_atrea_number_available_when_coordinator_data_is_none():
+    coordinator = make_coordinator_with_data(None)
+    number = AtreaNumber(coordinator, get_coordinator_number_description("season_temp_thr"))
+    assert number.available is False
+
+
+async def test_atrea_number_set_native_value():
+    coordinator = make_coordinator_with_data({"season_temp_thr": 15.0})
+    number = AtreaNumber(coordinator, get_coordinator_number_description("season_temp_thr"))
+    number.async_write_ha_state = MagicMock()
+
+    await number.async_set_native_value(20.0)
+
+    coordinator.async_write.assert_awaited_once_with("season_temp_thr", 20.0)
+    number.async_write_ha_state.assert_called_once()
+
+
+def test_atrea_number_unique_id():
+    coordinator = make_coordinator_with_data({"season_temp_thr": 15.0})
+    number = AtreaNumber(coordinator, get_coordinator_number_description("season_temp_thr"))
+    assert number.unique_id == "test_entry_season_temp_thr"
