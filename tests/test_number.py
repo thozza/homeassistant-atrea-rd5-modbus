@@ -4,31 +4,15 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from homeassistant.helpers.device_registry import DeviceInfo
 from pymodbus.exceptions import ModbusException
 
+from tests.conftest import make_coordinator
 from custom_components.atrea_rd5_modbus.number import (
     COORDINATOR_NUMBER_DESCRIPTIONS,
     AtreaNumber,
     NUMBER_DESCRIPTIONS,
     AtreaBmsNumber,
 )
-
-
-def make_coordinator(data: dict | None = None, success: bool = True) -> MagicMock:
-    coordinator = MagicMock()
-    coordinator.data = data
-    coordinator.last_update_success = success
-    coordinator.config_entry.entry_id = "test_entry"
-    coordinator.config_entry.data = {"host": "192.168.1.100"}
-    coordinator.device_info = DeviceInfo(
-        identifiers={("atrea_rd5_modbus", "test_entry")},
-        name="Atrea RD5 @ 192.168.1.100",
-        manufacturer="Atrea",
-        model="RD5",
-    )
-    coordinator.async_write = AsyncMock()
-    return coordinator
 
 
 def get_description(key: str):
