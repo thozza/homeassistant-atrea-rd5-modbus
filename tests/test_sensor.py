@@ -32,12 +32,15 @@ def get_description(key: str):
 
 
 def test_sensor_descriptions_count():
-    assert len(SENSOR_DESCRIPTIONS) == 7
+    assert len(SENSOR_DESCRIPTIONS) == 8
 
 
 def test_sensor_descriptions_keys():
     keys = {d.key for d in SENSOR_DESCRIPTIONS}
-    assert keys == {"temp_oda", "temp_sup", "temp_eta", "temp_eha", "temp_ida", "power", "mode"}
+    assert keys == {
+        "temp_oda", "temp_sup", "temp_eta", "temp_eha", "temp_ida",
+        "power", "mode", "season",
+    }
 
 
 @pytest.mark.parametrize("key, value", [
@@ -93,3 +96,31 @@ def test_sensor_device_info():
     assert info["manufacturer"] == "Atrea"
     assert info["model"] == "RD5"
     assert info["name"] == "Atrea RD5 @ 192.168.1.100"
+
+
+@pytest.mark.parametrize("value, expected", [
+    ("Heating",     "Heating"),
+    ("Non-heating", "Non-heating"),
+])
+def test_season_sensor_native_value(value: str, expected: str) -> None:
+    coordinator = make_coordinator({"season": value})
+    sensor = AtreaSensor(coordinator, get_description("season"))
+    assert sensor.native_value == expected
+
+
+def test_season_sensor_options() -> None:
+    from custom_components.atrea_rd5_modbus.const import SEASON_STATE_OPTIONS
+    desc = get_description("season")
+    assert list(desc.options) == SEASON_STATE_OPTIONS
+
+
+def test_season_sensor_entity_category() -> None:
+    from homeassistant.const import EntityCategory
+    desc = get_description("season")
+    assert desc.entity_category == EntityCategory.DIAGNOSTIC
+
+
+def test_season_sensor_unavailable_when_none() -> None:
+    coordinator = make_coordinator({"season": None})
+    sensor = AtreaSensor(coordinator, get_description("season"))
+    assert sensor.available is False
