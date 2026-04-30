@@ -48,6 +48,11 @@ def mock_modbus_client():
     # tida_source=3 (BMS)
     holding_response_tida_source.registers = [3]
 
+    holding_response_season = MagicMock()
+    holding_response_season.isError.return_value = False
+    # season=0 (Heating), season_switch=0 (TS), season_temp_thr=150 (15.0 °C)
+    holding_response_season.registers = [0, 0, 150]
+
     coil_response = MagicMock()
     coil_response.isError.return_value = False
     # toda_source=1 (BMS); pymodbus pads bits to a multiple of 8
@@ -58,6 +63,8 @@ def mock_modbus_client():
             return holding_response_main
         if address == 10514:
             return holding_response_tida_source
+        if address == 11400:
+            return holding_response_season
         raise AssertionError(f"Unexpected holding read at {address}")
 
     write_response = MagicMock()

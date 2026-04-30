@@ -36,6 +36,9 @@ async def test_update_data_success(mock_modbus_client):
     assert data["temp_ida"] == 21.0   # 210 / 10
     assert data["power"] == 75.0
     assert data["mode"] == "Automatic"  # mode index 1
+    assert data["season"] == "Heating"       # register 0 → "Heating"
+    assert data["season_switch"] == "TS"     # register 0 → "TS"
+    assert data["season_temp_thr"] == 15.0   # register 150 / 10
 
 
 async def test_update_data_negative_temperature(mock_modbus_client):
@@ -59,7 +62,7 @@ async def test_update_data_negative_temperature(mock_modbus_client):
     ),
     (
         "read_holding_registers",
-        ["power", "mode", "tida_source"],
+        ["power", "mode", "tida_source", "season", "season_switch", "season_temp_thr"],
         "temp_oda",
     ),
 ])
