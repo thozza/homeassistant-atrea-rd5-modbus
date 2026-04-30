@@ -11,12 +11,12 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, UnitOfTemperature
+from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, OPERATION_MODE_OPTIONS
+from .const import DOMAIN, OPERATION_MODE_OPTIONS, SEASON_STATE_OPTIONS
 from .coordinator import AtreaCoordinator
 
 
@@ -72,6 +72,13 @@ SENSOR_DESCRIPTIONS: tuple[AtreaSensorEntityDescription, ...] = (
         name="Ventilation Mode",
         device_class=SensorDeviceClass.ENUM,
         options=OPERATION_MODE_OPTIONS,
+    ),
+    AtreaSensorEntityDescription(
+        key="season",
+        name="Heating Season",
+        device_class=SensorDeviceClass.ENUM,
+        options=SEASON_STATE_OPTIONS,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
 )
 
