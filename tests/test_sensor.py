@@ -26,41 +26,33 @@ def test_sensor_descriptions_keys():
     }
 
 
-@pytest.mark.parametrize("key, value", [
-    ("temp_oda",  20.5),
-    ("power",     75.0),
-    ("mode",      "Automatic"),
-    ("season",    "Heating"),
-    ("season",    "Non-heating"),
+@pytest.mark.parametrize("key, data, expected", [
+    ("temp_oda", {"temp_oda": 20.5},          20.5),
+    ("power",    {"power": 75.0},             75.0),
+    ("mode",     {"mode": "Automatic"},       "Automatic"),
+    ("season",   {"season": "Heating"},       "Heating"),
+    ("season",   {"season": "Non-heating"},   "Non-heating"),
+    ("temp_oda", None,                        None),   # coordinator.data is None → None
 ])
-def test_sensor_native_value(key: str, value) -> None:
-    coordinator = make_coordinator({key: value})
+def test_sensor_native_value(key: str, data, expected) -> None:
+    coordinator = make_coordinator(data)
     sensor = AtreaSensor(coordinator, get_description(key))
-    assert sensor.native_value == value
+    assert sensor.native_value == expected
 
 
-@pytest.mark.parametrize("key, data, success, data_is_none, expected_available", [
-    ("temp_oda", {"temp_oda": 20.5}, True,  False, True),   # normal: data present, coordinator healthy
-    ("temp_oda", {"temp_oda": None}, True,  False, False),  # value is None (batch failed)
-    ("temp_oda", {"temp_oda": 20.5}, False, False, False),  # coordinator refresh failed
-    ("temp_oda", {"temp_oda": 20.5}, True,  True,  False),  # coordinator.data itself is None
-    ("season",   {"season": None},   True,  False, False),  # season value is None
+@pytest.mark.parametrize("key, data, success, expected_available", [
+    ("temp_oda", {"temp_oda": 20.5}, True,  True),   # normal: data present, coordinator healthy
+    ("temp_oda", {"temp_oda": None}, True,  False),  # value is None (batch failed)
+    ("temp_oda", {"temp_oda": 20.5}, False, False),  # coordinator refresh failed
+    ("temp_oda", None,               True,  False),  # coordinator.data itself is None
+    ("season",   {"season": None},   True,  False),  # season value is None
 ])
 def test_sensor_available(
-    key: str, data: dict, success: bool, data_is_none: bool, expected_available: bool
+    key: str, data, success: bool, expected_available: bool
 ) -> None:
     coordinator = make_coordinator(data, success)
-    if data_is_none:
-        coordinator.data = None
     sensor = AtreaSensor(coordinator, get_description(key))
     assert sensor.available is expected_available
-
-
-def test_sensor_native_value_none_when_data_is_none():
-    coordinator = make_coordinator({"temp_oda": 20.5})
-    coordinator.data = None
-    sensor = AtreaSensor(coordinator, get_description("temp_oda"))
-    assert sensor.native_value is None
 
 
 def test_sensor_unique_id():

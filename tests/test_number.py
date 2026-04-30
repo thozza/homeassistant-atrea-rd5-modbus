@@ -128,34 +128,26 @@ def test_coordinator_number_description_range():
     assert desc.native_step == 0.1
 
 
-def test_atrea_number_native_value():
-    coordinator = make_coordinator({"season_temp_thr": 15.0})
+@pytest.mark.parametrize("data, expected", [
+    ({"season_temp_thr": 15.0}, 15.0),
+    (None,                      None),   # coordinator.data is None → None
+])
+def test_atrea_number_native_value(data, expected) -> None:
+    coordinator = make_coordinator(data)
     number = AtreaNumber(coordinator, get_coordinator_number_description("season_temp_thr"))
-    assert number.native_value == 15.0
-
-
-def test_atrea_number_native_value_none_when_data_is_none():
-    coordinator = make_coordinator({"season_temp_thr": 15.0})
-    coordinator.data = None
-    number = AtreaNumber(coordinator, get_coordinator_number_description("season_temp_thr"))
-    assert number.native_value is None
+    assert number.native_value == expected
 
 
 @pytest.mark.parametrize("data, success, expected", [
     ({"season_temp_thr": 15.0}, True,  True),
     ({"season_temp_thr": None}, True,  False),
     ({"season_temp_thr": 15.0}, False, False),
+    (None,                      True,  False),  # coordinator.data is None
 ])
-def test_atrea_number_available(data: dict, success: bool, expected: bool) -> None:
+def test_atrea_number_available(data, success: bool, expected: bool) -> None:
     coordinator = make_coordinator(data, success)
     number = AtreaNumber(coordinator, get_coordinator_number_description("season_temp_thr"))
     assert number.available is expected
-
-
-def test_atrea_number_available_when_coordinator_data_is_none():
-    coordinator = make_coordinator(None)
-    number = AtreaNumber(coordinator, get_coordinator_number_description("season_temp_thr"))
-    assert number.available is False
 
 
 async def test_atrea_number_set_native_value():
