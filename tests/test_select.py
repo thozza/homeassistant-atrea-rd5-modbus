@@ -33,12 +33,15 @@ def get_description(key: str):
 
 
 def test_select_descriptions_keys():
-    assert {d.key for d in SELECT_DESCRIPTIONS} == {"toda_source", "tida_source"}
+    assert {d.key for d in SELECT_DESCRIPTIONS} == {
+        "toda_source", "tida_source", "season_switch",
+    }
 
 
 @pytest.mark.parametrize("key, options", [
     ("toda_source", ["Internal", "BMS"]),
     ("tida_source", ["CP", "T-ETA", "TRKn", "BMS"]),
+    ("season_switch", ["TS", "NTS", "T-TODA", "T-TODA+"]),
 ])
 def test_select_descriptions_options(key: str, options: list[str]) -> None:
     desc = get_description(key)
@@ -48,6 +51,7 @@ def test_select_descriptions_options(key: str, options: list[str]) -> None:
 @pytest.mark.parametrize("key, value", [
     ("toda_source", "BMS"),
     ("tida_source", "CP"),
+    ("season_switch", "TS"),
 ])
 def test_select_current_option(key: str, value: str) -> None:
     coordinator = make_coordinator({key: value})
@@ -56,13 +60,16 @@ def test_select_current_option(key: str, value: str) -> None:
 
 
 @pytest.mark.parametrize("data, success, expected", [
-    ({"toda_source": "BMS"},   True,  True),
-    ({"toda_source": None},    True,  False),
-    ({"toda_source": "BMS"},   False, False),
+    ({"toda_source": "BMS"},     True,  True),
+    ({"toda_source": None},      True,  False),
+    ({"toda_source": "BMS"},     False, False),
+    ({"season_switch": "NTS"},   True,  True),
+    ({"season_switch": None},    True,  False),
 ])
 def test_select_available(data: dict, success: bool, expected: bool) -> None:
+    key = next(iter(data))
     coordinator = make_coordinator(data, success)
-    select = AtreaSelect(coordinator, get_description("toda_source"))
+    select = AtreaSelect(coordinator, get_description(key))
     assert select.available is expected
 
 
@@ -79,3 +86,13 @@ def test_select_unique_id():
     coordinator = make_coordinator({"toda_source": "BMS"})
     select = AtreaSelect(coordinator, get_description("toda_source"))
     assert select.unique_id == "test_entry_toda_source"
+
+
+@pytest.mark.parametrize("option", ["TS", "NTS", "T-TODA", "T-TODA+"])
+async def test_season_switch_select_option(option: str) -> None:
+    coordinator = make_coordinator({"season_switch": "TS"})
+    select = AtreaSelect(coordinator, get_description("season_switch"))
+
+    await select.async_select_option(option)
+
+    coordinator.async_write.assert_awaited_once_with("season_switch", option)

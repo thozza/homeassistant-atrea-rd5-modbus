@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, TIDA_SOURCE_OPTIONS, TODA_SOURCE_OPTIONS
+from .const import DOMAIN, SEASON_SWITCH_OPTIONS, TIDA_SOURCE_OPTIONS, TODA_SOURCE_OPTIONS
 from .coordinator import AtreaCoordinator
 
 
@@ -35,6 +35,13 @@ SELECT_DESCRIPTIONS: tuple[AtreaSelectEntityDescription, ...] = (
         name="T-IDA Source",
         write_key="tida_source",
         options=TIDA_SOURCE_OPTIONS,
+        entity_category=EntityCategory.CONFIG,
+    ),
+    AtreaSelectEntityDescription(
+        key="season_switch",
+        name="Season Switch Mode",
+        write_key="season_switch",
+        options=SEASON_SWITCH_OPTIONS,
         entity_category=EntityCategory.CONFIG,
     ),
 )
