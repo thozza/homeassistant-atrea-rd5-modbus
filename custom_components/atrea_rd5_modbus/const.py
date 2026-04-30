@@ -104,6 +104,23 @@ def _convert_tida_source(val: int) -> str | None:
     return TIDA_SOURCES.get(val)
 
 
+SEASON_STATES: dict[int, str] = {0: "Heating", 1: "Non-heating"}
+SEASON_STATE_OPTIONS: list[str] = list(SEASON_STATES.values())
+
+
+def _convert_season(val: int) -> str | None:
+    return SEASON_STATES.get(val)
+
+
+SEASON_SWITCH: dict[int, str] = {0: "TS", 1: "NTS", 2: "T-TODA", 3: "T-TODA+"}
+SEASON_SWITCH_OPTIONS: list[str] = list(SEASON_SWITCH.values())
+SEASON_SWITCH_INV: dict[str, int] = {v: k for k, v in SEASON_SWITCH.items()}
+
+
+def _convert_season_switch(val: int) -> str | None:
+    return SEASON_SWITCH.get(val)
+
+
 REGISTER_MAP: dict[str, RegisterEntry] = {
     "temp_oda": RegisterEntry(address=10211, register_type=RegisterType.INPUT, convert=signed10),
     "temp_sup": RegisterEntry(address=10212, register_type=RegisterType.INPUT, convert=signed10),
@@ -114,6 +131,9 @@ REGISTER_MAP: dict[str, RegisterEntry] = {
     "power": RegisterEntry(address=10704, register_type=RegisterType.HOLDING, convert=float),
     "mode": RegisterEntry(address=10705, register_type=RegisterType.HOLDING, convert=_convert_mode),
     "toda_source": RegisterEntry(address=10510, register_type=RegisterType.COIL, convert=_convert_toda_source),
+    "season": RegisterEntry(address=11400, register_type=RegisterType.HOLDING, convert=_convert_season),
+    "season_switch": RegisterEntry(address=11401, register_type=RegisterType.HOLDING, convert=_convert_season_switch),
+    "season_temp_thr": RegisterEntry(address=11402, register_type=RegisterType.HOLDING, convert=signed10),
 }
 
 
@@ -129,6 +149,8 @@ WRITE_REGISTER_MAP: dict[str, WriteRegisterEntry] = {
     "bms_tida": WriteRegisterEntry(10214, RegisterType.HOLDING, encode_signed10),
     "toda_source": WriteRegisterEntry(10510, RegisterType.COIL, lambda v: TODA_SOURCES_INV[v]),
     "tida_source": WriteRegisterEntry(10514, RegisterType.HOLDING, lambda v: TIDA_SOURCES_INV[v]),
+    "season_switch": WriteRegisterEntry(11401, RegisterType.HOLDING, lambda v: SEASON_SWITCH_INV[v]),
+    "season_temp_thr": WriteRegisterEntry(11402, RegisterType.HOLDING, encode_signed10),
 }
 
 

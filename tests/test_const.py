@@ -16,11 +16,11 @@ from custom_components.atrea_rd5_modbus.const import (
     build_batch_groups,
     encode_signed10,
     signed10,
-    TIDA_SOURCES,
-    TIDA_SOURCES_INV,
-    TODA_SOURCES,
-    TODA_SOURCES_INV,
-    encode_signed10,
+    SEASON_STATES,
+    SEASON_STATE_OPTIONS,
+    SEASON_SWITCH,
+    SEASON_SWITCH_OPTIONS,
+    SEASON_SWITCH_INV,
 )
 
 # --- signed10 ---
@@ -39,11 +39,11 @@ def test_signed10(raw: int, expected: float) -> None:
     assert signed10(raw) == expected
 
 
-def test_build_batch_groups_returns_four_groups():
-    """Five inputs (10211–10215), two adjacent holdings (10704–10705),
-    one isolated holding (10514), and one coil (10510)."""
+def test_build_batch_groups_returns_five_groups():
+    """Input (10211–10215), tida_source (10514), power+mode (10704–10705),
+    season batch (11400–11402), toda_source coil (10510)."""
     groups = build_batch_groups(REGISTER_MAP)
-    assert len(groups) == 4
+    assert len(groups) == 5
 
 
 def test_build_batch_groups_covers_all_register_types():
@@ -73,6 +73,11 @@ def test_build_batch_groups_covers_all_register_types():
         10510, 1,
         ["toda_source"],
     ),
+    (
+        RegisterType.HOLDING,
+        11400, 3,
+        ["season", "season_switch", "season_temp_thr"],
+    ),
 ])
 def test_build_batch_groups_properties(register_type: RegisterType, start: int, count: int, keys: list[str]) -> None:
     groups = build_batch_groups(REGISTER_MAP)
@@ -82,6 +87,19 @@ def test_build_batch_groups_properties(register_type: RegisterType, start: int, 
     )
     assert group.count == count
     assert group.keys == keys
+
+
+def test_season_states_options() -> None:
+    assert SEASON_STATE_OPTIONS == ["Heating", "Non-heating"]
+
+
+def test_season_switch_options() -> None:
+    assert SEASON_SWITCH_OPTIONS == ["TS", "NTS", "T-TODA", "T-TODA+"]
+
+
+def test_season_switch_inv_round_trip() -> None:
+    for code, name in SEASON_SWITCH.items():
+        assert SEASON_SWITCH_INV[name] == code
 
 
 def test_build_batch_groups_non_consecutive_splits():
@@ -125,14 +143,17 @@ def test_tida_sources_inv_round_trip() -> None:
 def test_write_register_map_keys():
     assert set(WRITE_REGISTER_MAP) == {
         "bms_toda", "bms_tida", "toda_source", "tida_source",
+        "season_switch", "season_temp_thr",
     }
 
 
 @pytest.mark.parametrize("key, address, register_type", [
-    ("bms_toda",    10213, RegisterType.HOLDING),
-    ("bms_tida",    10214, RegisterType.HOLDING),
-    ("toda_source", 10510, RegisterType.COIL),
-    ("tida_source", 10514, RegisterType.HOLDING),
+    ("bms_toda",       10213, RegisterType.HOLDING),
+    ("bms_tida",       10214, RegisterType.HOLDING),
+    ("toda_source",    10510, RegisterType.COIL),
+    ("tida_source",    10514, RegisterType.HOLDING),
+    ("season_switch",   11401, RegisterType.HOLDING),
+    ("season_temp_thr", 11402, RegisterType.HOLDING),
 ])
 def test_write_register_map_addresses(key: str, address: int, register_type: RegisterType) -> None:
     entry = WRITE_REGISTER_MAP[key]
@@ -151,6 +172,13 @@ def test_write_register_map_addresses(key: str, address: int, register_type: Reg
     ("tida_source", "T-ETA", 1),
     ("tida_source", "TRKn", 2),
     ("tida_source", "BMS", 3),
+    ("season_switch",   "TS",      0),
+    ("season_switch",   "NTS",     1),
+    ("season_switch",   "T-TODA",  2),
+    ("season_switch",   "T-TODA+", 3),
+    ("season_temp_thr", 15.0,    150),
+    ("season_temp_thr",  0.0,      0),
+    ("season_temp_thr", 30.0,    300),
 ])
 def test_write_register_map_encode(key: str, value, expected_raw: int) -> None:
     assert WRITE_REGISTER_MAP[key].encode(value) == expected_raw
