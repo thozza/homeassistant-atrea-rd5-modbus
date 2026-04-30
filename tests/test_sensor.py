@@ -27,9 +27,11 @@ def test_sensor_descriptions_keys():
 
 
 @pytest.mark.parametrize("key, value", [
-    ("temp_oda", 20.5),
-    ("power",    75.0),
-    ("mode",     "Automatic"),
+    ("temp_oda",  20.5),
+    ("power",     75.0),
+    ("mode",      "Automatic"),
+    ("season",    "Heating"),
+    ("season",    "Non-heating"),
 ])
 def test_sensor_native_value(key: str, value) -> None:
     coordinator = make_coordinator({key: value})
@@ -37,19 +39,20 @@ def test_sensor_native_value(key: str, value) -> None:
     assert sensor.native_value == value
 
 
-@pytest.mark.parametrize("data, success, data_is_none, expected_available", [
-    ({"temp_oda": 20.5}, True,  False, True),   # normal: data present, coordinator healthy
-    ({"temp_oda": None}, True,  False, False),  # value is None (batch failed)
-    ({"temp_oda": 20.5}, False, False, False),  # coordinator refresh failed
-    ({"temp_oda": 20.5}, True,  True,  False),  # coordinator.data itself is None
+@pytest.mark.parametrize("key, data, success, data_is_none, expected_available", [
+    ("temp_oda", {"temp_oda": 20.5}, True,  False, True),   # normal: data present, coordinator healthy
+    ("temp_oda", {"temp_oda": None}, True,  False, False),  # value is None (batch failed)
+    ("temp_oda", {"temp_oda": 20.5}, False, False, False),  # coordinator refresh failed
+    ("temp_oda", {"temp_oda": 20.5}, True,  True,  False),  # coordinator.data itself is None
+    ("season",   {"season": None},   True,  False, False),  # season value is None
 ])
 def test_sensor_available(
-    data: dict, success: bool, data_is_none: bool, expected_available: bool
+    key: str, data: dict, success: bool, data_is_none: bool, expected_available: bool
 ) -> None:
     coordinator = make_coordinator(data, success)
     if data_is_none:
         coordinator.data = None
-    sensor = AtreaSensor(coordinator, get_description("temp_oda"))
+    sensor = AtreaSensor(coordinator, get_description(key))
     assert sensor.available is expected_available
 
 
@@ -81,16 +84,6 @@ def test_sensor_device_info():
     assert info["name"] == "Atrea RD5 @ 192.168.1.100"
 
 
-@pytest.mark.parametrize("value, expected", [
-    ("Heating",     "Heating"),
-    ("Non-heating", "Non-heating"),
-])
-def test_season_sensor_native_value(value: str, expected: str) -> None:
-    coordinator = make_coordinator({"season": value})
-    sensor = AtreaSensor(coordinator, get_description("season"))
-    assert sensor.native_value == expected
-
-
 def test_season_sensor_options() -> None:
     from custom_components.atrea_rd5_modbus.const import SEASON_STATE_OPTIONS
     desc = get_description("season")
@@ -103,7 +96,3 @@ def test_season_sensor_entity_category() -> None:
     assert desc.entity_category == EntityCategory.DIAGNOSTIC
 
 
-def test_season_sensor_unavailable_when_none() -> None:
-    coordinator = make_coordinator({"season": None})
-    sensor = AtreaSensor(coordinator, get_description("season"))
-    assert sensor.available is False
