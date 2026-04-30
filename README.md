@@ -17,7 +17,7 @@ Monitor and control your **Atrea RD5 ventilation unit** from Home Assistant usin
 - 🌐 **BMS temperature source selects**: choose between internal sensor or BMS-supplied value for T-ODA and T-IDA
 - 📡 **BMS setpoint write**: push outdoor / indoor temperature values from HA automations to the HVAC
 - 🍂 **Heating season control**: view the active season (Heating / Non-heating), configure the switching mode (TS / NTS / T-TODA / T-TODA+), and set the temperature threshold
-- Efficient batch Modbus reads — only 3 TCP requests per poll cycle
+- Efficient batch Modbus reads — consecutive registers are merged into a single Modbus request per poll cycle
 - Zero-YAML setup via Home Assistant UI config flow
 - Configurable poll interval (5–300 s) editable post-setup without re-adding the integration
 
@@ -153,7 +153,7 @@ Services**. Allowed range: 5–300 s.
 
 ## Architecture
 
-The integration uses a single `DataUpdateCoordinator` (`AtreaCoordinator`) that owns a persistent `AsyncModbusTcpClient` TCP connection. On each poll cycle, registers are read in **contiguous batches** — the 5 temperature sensors are fetched in one Modbus request (input registers 10211–10215), power + mode in another (holding registers 10704–10705), and the season data in a third (holding registers 11400–11402). This minimises network round-trips and scales well as more sensors are added.
+The integration uses a single `DataUpdateCoordinator` (`AtreaCoordinator`) that owns a persistent `AsyncModbusTcpClient` TCP connection. On each poll cycle, registers are read in **contiguous batches** — consecutive same-type addresses are merged into a single Modbus request automatically. This minimises network round-trips and scales well as more sensors are added.
 
 ```
 custom_components/atrea_rd5_modbus/
