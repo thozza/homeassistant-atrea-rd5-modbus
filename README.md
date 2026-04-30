@@ -16,7 +16,8 @@ Monitor and control your **Atrea RD5 ventilation unit** from Home Assistant usin
 - 💨 **Ventilation power**: current requested fan power (0–100%)
 - 🌐 **BMS temperature source selects**: choose between internal sensor or BMS-supplied value for T-ODA and T-IDA
 - 📡 **BMS setpoint write**: push outdoor / indoor temperature values from HA automations to the HVAC
-- Efficient batch Modbus reads — only 2 TCP requests per poll cycle
+- 🍂 **Heating season control**: view the active season (Heating / Non-heating), configure the switching mode (TS / NTS / T-TODA / T-TODA+), and set the temperature threshold
+- Efficient batch Modbus reads — only 3 TCP requests per poll cycle
 - Zero-YAML setup via Home Assistant UI config flow
 - Configurable poll interval (5–300 s) editable post-setup without re-adding the integration
 
@@ -74,6 +75,9 @@ The connection is validated before the entry is saved — if the device is unrea
 | T-IDA Source | — | Select: choose indoor temp source (CP / T-ETA / TRKn / BMS) |
 | BMS T-ODA Setpoint | °C | BMS-supplied outdoor temp (write-only, −50–130 °C) |
 | BMS T-IDA Setpoint | °C | BMS-supplied indoor temp (write-only, −50–130 °C) |
+| Heating Season | — | Current season state (Heating / Non-heating) — diagnostic |
+| Season Switch Mode | — | Select: season switching logic (TS / NTS / T-TODA / T-TODA+) |
+| Season Temperature Threshold | °C | Outdoor temp threshold for automatic season switching (0–30 °C) |
 
 ## BMS Setpoints (T-ODA / T-IDA from external sensors)
 
@@ -120,6 +124,27 @@ automation:
 Pair this with `select.atrea_rd5_t_oda_source` set to `BMS` so the
 HVAC actually consumes the supplied value.
 
+## Heating Season
+
+The Atrea RD5 can switch between heating season (TS) and non-heating
+season (NTS) automatically or on demand. This integration exposes three
+entities for this feature:
+
+| Entity | Type | Purpose |
+|--------|------|---------|
+| `sensor.atrea_rd5_heating_season` | sensor | Read-only diagnostic: current season (Heating / Non-heating) |
+| `select.atrea_rd5_season_switch_mode` | select | Configure the switching mode: TS / NTS / T-TODA / T-TODA+ |
+| `number.atrea_rd5_season_temperature_threshold` | number | Outdoor temp threshold used by the T-TODA / T-TODA+ modes (0–30 °C) |
+
+**Switching modes:**
+
+| Mode | Behaviour |
+|------|-----------|
+| `TS` | Force heating season |
+| `NTS` | Force non-heating season |
+| `T-TODA` | Auto: switch to NTS when T-ODA ≥ threshold |
+| `T-TODA+` | Auto with hysteresis: switch to NTS when T-ODA ≥ threshold, back to TS when T-ODA falls below it |
+
 ### Polling interval
 
 The polling interval (default 30 s) is editable post-setup via
@@ -128,16 +153,16 @@ Services**. Allowed range: 5–300 s.
 
 ## Architecture
 
-The integration uses a single `DataUpdateCoordinator` (`AtreaCoordinator`) that owns a persistent `AsyncModbusTcpClient` TCP connection. On each poll cycle, registers are read in **contiguous batches** — the 5 temperature sensors are fetched in one Modbus request (input registers 10211–10215), and power + mode in another (holding registers 10704–10705). This minimises network round-trips and scales well as more sensors are added.
+The integration uses a single `DataUpdateCoordinator` (`AtreaCoordinator`) that owns a persistent `AsyncModbusTcpClient` TCP connection. On each poll cycle, registers are read in **contiguous batches** — the 5 temperature sensors are fetched in one Modbus request (input registers 10211–10215), power + mode in another (holding registers 10704–10705), and the season data in a third (holding registers 11400–11402). This minimises network round-trips and scales well as more sensors are added.
 
 ```
 custom_components/atrea_rd5_modbus/
 ├── __init__.py       # Integration setup, coordinator + client lifecycle
 ├── coordinator.py    # DataUpdateCoordinator, batched Modbus reads
 ├── const.py          # Register map, signed10() conversion, batch grouping
-├── sensor.py         # 7 read-only sensor entities (temperatures, power, mode)
-├── select.py         # 2 select entities (T-ODA / T-IDA source)
-├── number.py         # 2 number entities (BMS T-ODA / T-IDA setpoints)
+├── sensor.py         # 8 read-only sensor entities (temperatures, power, mode, season)
+├── select.py         # 3 select entities (T-ODA / T-IDA source, season switch mode)
+├── number.py         # 3 number entities (BMS setpoints, season temp threshold)
 └── config_flow.py    # UI config flow with live connection validation
 ```
 
