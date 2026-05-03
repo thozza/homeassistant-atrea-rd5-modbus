@@ -39,11 +39,9 @@ def test_signed10(raw: int, expected: float) -> None:
     assert signed10(raw) == expected
 
 
-def test_build_batch_groups_returns_five_groups():
-    """Input (10211–10215), tida_source (10514), power+mode (10704–10705),
-    season batch (11400–11402), toda_source coil (10510)."""
+def test_build_batch_groups_return_groups_count():
     groups = build_batch_groups(REGISTER_MAP)
-    assert len(groups) == 5
+    assert len(groups) == 6
 
 
 def test_build_batch_groups_covers_all_register_types():
@@ -74,9 +72,14 @@ def test_build_batch_groups_covers_all_register_types():
         ["toda_source"],
     ),
     (
+        RegisterType.INPUT,
+        11401, 1,
+        ["season"],
+    ),
+    (
         RegisterType.HOLDING,
-        11400, 3,
-        ["season", "season_switch", "season_temp_thr"],
+        11401, 2,
+        ["season_switch", "season_temp_thr"],
     ),
 ])
 def test_build_batch_groups_properties(register_type: RegisterType, start: int, count: int, keys: list[str]) -> None:
