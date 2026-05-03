@@ -91,7 +91,16 @@ class AtreaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     raw = result.registers
 
                 for i, key in enumerate(group.keys):
-                    data[key] = REGISTER_MAP[key].convert(raw[i])
+                    converted = REGISTER_MAP[key].convert(raw[i])
+                    if converted is None:
+                        _LOGGER.warning(
+                            "Register %s (addr=%d) returned unexpected raw value %r — "
+                            "converter produced None; entity will be unavailable",
+                            key,
+                            REGISTER_MAP[key].address,
+                            raw[i],
+                        )
+                    data[key] = converted
 
             except Exception as err:
                 _LOGGER.warning(
