@@ -80,20 +80,31 @@ def mock_modbus_client():
     # toda_source=1 (BMS); pymodbus pads bits to a multiple of 8
     coil_response.bits = [True, False, False, False, False, False, False, False]
 
+    def _slice_response(source: MagicMock, address: int, count: int) -> MagicMock:
+        if count > len(source.registers):
+            raise AssertionError(
+                f"Read at {address} requested {count} registers but only "
+                f"{len(source.registers)} available"
+            )
+        result = MagicMock()
+        result.isError.return_value = False
+        result.registers = source.registers[:count]
+        return result
+
     def read_input_side_effect(*, address: int, count: int, **_kw):
         if address == 10211:
-            return input_response_temps
+            return _slice_response(input_response_temps, address, count)
         if address == 11401:
-            return input_response_season
+            return _slice_response(input_response_season, address, count)
         raise AssertionError(f"Unexpected input read at {address}")
 
     def read_holding_side_effect(*, address: int, count: int, **_kw):
         if address == 10704:
-            return holding_response_main
+            return _slice_response(holding_response_main, address, count)
         if address == 10514:
-            return holding_response_tida_source
+            return _slice_response(holding_response_tida_source, address, count)
         if address == 11401:
-            return holding_response_season
+            return _slice_response(holding_response_season, address, count)
         raise AssertionError(f"Unexpected holding read at {address}")
 
     write_response = MagicMock()
