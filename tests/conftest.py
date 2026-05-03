@@ -50,10 +50,15 @@ def mock_modbus_client():
     client.connect = AsyncMock(return_value=True)
     client.close = MagicMock()
 
-    input_response = MagicMock()
-    input_response.isError.return_value = False
+    input_response_temps = MagicMock()
+    input_response_temps.isError.return_value = False
     # T-ODA=20.0, T-SUP=18.0, T-ETA=19.0, T-EHA=15.0, T-IDA=21.0
-    input_response.registers = [200, 180, 190, 150, 210]
+    input_response_temps.registers = [200, 180, 190, 150, 210]
+
+    input_response_season = MagicMock()
+    input_response_season.isError.return_value = False
+    # season=0 (Heating)
+    input_response_season.registers = [0]
 
     holding_response_main = MagicMock()
     holding_response_main.isError.return_value = False
@@ -67,20 +72,27 @@ def mock_modbus_client():
 
     holding_response_season = MagicMock()
     holding_response_season.isError.return_value = False
-    # season=0 (Heating), season_switch=0 (TS), season_temp_thr=150 (15.0 °C)
-    holding_response_season.registers = [0, 0, 150]
+    # season_switch=0 (TS), season_temp_thr=150 (15.0 °C)
+    holding_response_season.registers = [0, 150]
 
     coil_response = MagicMock()
     coil_response.isError.return_value = False
     # toda_source=1 (BMS); pymodbus pads bits to a multiple of 8
     coil_response.bits = [True, False, False, False, False, False, False, False]
 
+    def read_input_side_effect(*, address: int, count: int, **_kw):
+        if address == 10211:
+            return input_response_temps
+        if address == 11401:
+            return input_response_season
+        raise AssertionError(f"Unexpected input read at {address}")
+
     def read_holding_side_effect(*, address: int, count: int, **_kw):
         if address == 10704:
             return holding_response_main
         if address == 10514:
             return holding_response_tida_source
-        if address == 11400:
+        if address == 11401:
             return holding_response_season
         raise AssertionError(f"Unexpected holding read at {address}")
 
@@ -88,9 +100,10 @@ def mock_modbus_client():
     write_response.isError.return_value = False
 
     # spec= enforces the real pymodbus signature so wrong kwargs raise TypeError in tests just as in production.
+    client._input_response_temps = input_response_temps
     client.read_input_registers = AsyncMock(
         spec=AsyncModbusTcpClient.read_input_registers,
-        return_value=input_response,
+        side_effect=read_input_side_effect,
     )
     client.read_holding_registers = AsyncMock(
         spec=AsyncModbusTcpClient.read_holding_registers,

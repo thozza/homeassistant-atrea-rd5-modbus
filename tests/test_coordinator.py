@@ -42,7 +42,7 @@ async def test_update_data_success(mock_modbus_client):
 
 
 async def test_update_data_negative_temperature(mock_modbus_client):
-    mock_modbus_client.read_input_registers.return_value.registers = [
+    mock_modbus_client._input_response_temps.registers = [
         65436,  # -10.0°C
         180, 190, 150, 210,
     ]
@@ -57,12 +57,12 @@ async def test_update_data_negative_temperature(mock_modbus_client):
 @pytest.mark.parametrize("failing_method, none_keys, ok_key", [
     (
         "read_input_registers",
-        ["temp_oda", "temp_sup", "temp_eta", "temp_eha", "temp_ida"],
+        ["temp_oda", "temp_sup", "temp_eta", "temp_eha", "temp_ida", "season"],
         "power",
     ),
     (
         "read_holding_registers",
-        ["power", "mode", "tida_source", "season", "season_switch", "season_temp_thr"],
+        ["power", "mode", "tida_source", "season_switch", "season_temp_thr"],
         "temp_oda",
     ),
 ])

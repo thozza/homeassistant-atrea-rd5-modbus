@@ -127,11 +127,11 @@ REGISTER_MAP: dict[str, RegisterEntry] = {
     "temp_eta": RegisterEntry(address=10213, register_type=RegisterType.INPUT, convert=signed10),
     "temp_eha": RegisterEntry(address=10214, register_type=RegisterType.INPUT, convert=signed10),
     "temp_ida": RegisterEntry(address=10215, register_type=RegisterType.INPUT, convert=signed10),
+    "toda_source": RegisterEntry(address=10510, register_type=RegisterType.COIL, convert=_convert_toda_source),
     "tida_source": RegisterEntry(address=10514, register_type=RegisterType.HOLDING, convert=_convert_tida_source),
     "power": RegisterEntry(address=10704, register_type=RegisterType.HOLDING, convert=float),
     "mode": RegisterEntry(address=10705, register_type=RegisterType.HOLDING, convert=_convert_mode),
-    "toda_source": RegisterEntry(address=10510, register_type=RegisterType.COIL, convert=_convert_toda_source),
-    "season": RegisterEntry(address=11400, register_type=RegisterType.HOLDING, convert=_convert_season),
+    "season": RegisterEntry(address=11401, register_type=RegisterType.INPUT, convert=_convert_season),
     "season_switch": RegisterEntry(address=11401, register_type=RegisterType.HOLDING, convert=_convert_season_switch),
     "season_temp_thr": RegisterEntry(address=11402, register_type=RegisterType.HOLDING, convert=signed10),
 }
