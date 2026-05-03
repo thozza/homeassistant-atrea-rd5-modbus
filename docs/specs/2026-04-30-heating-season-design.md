@@ -9,11 +9,11 @@ Atrea RD5 heating/non-heating season logic:
 
 | Register | Key | R/W | Description |
 |---|---|---|---|
-| H11400 | `season` | R | Current season: Heating (0) / Non-heating (1) |
+| I11401 | `season` | R | Current season: Heating (0) / Non-heating (1) |
 | H11401 | `season_switch` | R/W | Season switch mode: TS, NTS, T-TODA, T-TODA+ |
 | H11402 | `season_temp_thr` | R/W | Season temperature threshold (0–30 °C) |
 
-H11400 is exposed as a read-only diagnostic sensor. H11401 is a config select.
+I11401 is exposed as a read-only diagnostic sensor. H11401 is a config select.
 H11402 is a config number that reads back from the device (coordinator-backed,
 not RestoreNumber).
 
@@ -31,9 +31,10 @@ No new files. Five existing files change:
 | `number.py` | New `AtreaNumber` coordinator-backed class + 1 description (H11402) |
 | `tests/` | 4 test files updated |
 
-H11400–H11402 are consecutive holding registers. `build_batch_groups()` merges
-them automatically into a single new Modbus read. Holding batch count: 2 → 3.
-`coordinator.py` requires no changes.
+`season` lives in a separate input batch (I11401). `season_switch` and
+`season_temp_thr` form a 2-register holding batch (H11401–H11402).
+`build_batch_groups()` handles both automatically. Holding batch count: 2 → 3,
+input batch count: 1 → 2. `coordinator.py` requires no changes.
 
 ---
 
@@ -59,8 +60,8 @@ def _convert_season_switch(val: int) -> str | None:
 ### REGISTER_MAP additions
 
 ```python
-"season":         RegisterEntry(11400, RegisterType.HOLDING, _convert_season),
-"season_switch":  RegisterEntry(11401, RegisterType.HOLDING, _convert_season_switch),
+"season":          RegisterEntry(11401, RegisterType.INPUT,   _convert_season),
+"season_switch":   RegisterEntry(11401, RegisterType.HOLDING, _convert_season_switch),
 "season_temp_thr": RegisterEntry(11402, RegisterType.HOLDING, signed10),
 ```
 
@@ -77,8 +78,8 @@ H11400 is read-only — no write entry.
 
 ## `sensor.py`
 
-New description appended to `SENSOR_DESCRIPTIONS`. Imports `SEASON_STATE_OPTIONS`
-(not `SEASON_SWITCH_OPTIONS`).
+New description appended to `SENSOR_DESCRIPTIONS`. Reads from I11401.
+Imports `SEASON_STATE_OPTIONS` (not `SEASON_SWITCH_OPTIONS`).
 
 ```python
 AtreaSensorEntityDescription(
@@ -94,8 +95,8 @@ AtreaSensorEntityDescription(
 
 ## `select.py`
 
-New description appended to `SELECT_DESCRIPTIONS`. Imports `SEASON_SWITCH_OPTIONS`
-(not `SEASON_STATE_OPTIONS`).
+New description appended to `SELECT_DESCRIPTIONS`. Reads/writes H11401.
+Imports `SEASON_SWITCH_OPTIONS` (not `SEASON_STATE_OPTIONS`).
 
 ```python
 AtreaSelectEntityDescription(
@@ -189,10 +190,12 @@ async def async_setup_entry(hass, entry, async_add_entities):
 ## Tests
 
 ### `test_coordinator.py`
-- Mock holding batch at 11400–11402 with sample raw values.
+- Mock input batch at I11401 (season) and holding batch at H11401–H11402
+  (season_switch, season_temp_thr) with sample raw values.
 - Assert `season`, `season_switch`, `season_temp_thr` in `coordinator.data` with
   correctly decoded values.
-- Assert partial-batch failure sets all three keys to `None`.
+- Assert input batch failure sets `season` to `None`; holding batch failure sets
+  `season_switch` and `season_temp_thr` to `None`.
 
 ### `test_sensor.py`
 - `season` = `"Heating"` when register = 0.
